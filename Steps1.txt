@@ -1,0 +1,15 @@
+April 6
+Saumya - Check for a good encoder decoder transformer that is text=2-text
+Swagarika - Does preprocessing
+
+1) Download data ()
+2) Remove redunduncy
+3) Remove the ids etc that were error
+
+
+clustering while training
+
+We have to develop lora, peft, moe 
+Just may be work with small subset of protein
+
+

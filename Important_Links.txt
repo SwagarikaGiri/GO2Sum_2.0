@@ -1,0 +1,1 @@
+https://www.uniprot.org/uniprotkb?fields=accession%2Creviewed%2Cid%2Ccc_function%2Ccc_pathway%2Ccc_subunit%2Cgo_id&query=reviewed%3Atrue&view=table
