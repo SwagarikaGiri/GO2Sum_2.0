@@ -1,1 +1,6 @@
 https://www.uniprot.org/uniprotkb?fields=accession%2Creviewed%2Cid%2Ccc_function%2Ccc_pathway%2Ccc_subunit%2Cgo_id&query=reviewed%3Atrue&view=table
+
+
+https://wandb.ai/mostafaibrahim17/ml-articles/reports/Fine-Tuning-LLaMa-2-for-Text-Summarization--Vmlldzo2NjA1OTAy
+
+https://medium.com/@vgupta701/fine-tuning-llama-2-on-together-ai-for-text-summarization-9d26a205d5b3
