@@ -29,21 +29,32 @@ val_dataset = GODocDataset(VAL_TSV, OBO_PATH)
 print(f"✅ Loaded {len(train_dataset)} training samples and {len(val_dataset)} validation samples.")
 
 def tokenize_example(example):
-    input_text = "Summarize GO doc: " + example["input"]
-    target_text = example["target"]
+    input_text = "Summarize GO doc: " + str(example.get("input", "")).strip()
+    target_text = str(example.get("target", "")).strip()
+
+    if not input_text or not target_text or target_text.lower() == "nan":
+        return None
+
     model_inputs = tokenizer(
         input_text,
         truncation=True,
         padding="max_length",
         max_length=MAX_LENGTH
     )
-    labels = tokenizer(
-        target_text,
-        truncation=True,
-        padding="max_length",
-        max_length=MAX_LENGTH
-    )["input_ids"]
+
+    # Switch tokenizer to target mode
+    with tokenizer.as_target_tokenizer():
+        labels = tokenizer(
+            target_text,
+            truncation=True,
+            padding="max_length",
+            max_length=MAX_LENGTH
+        )["input_ids"]
+
+    # Replace PAD token ids with -100 so they’re ignored in loss calculation
+    labels = [label if label != tokenizer.pad_token_id else -100 for label in labels]
     model_inputs["labels"] = labels
+
     return {k: torch.tensor(v) for k, v in model_inputs.items()}
 
 class TokenizedDataset(Dataset):
@@ -58,6 +69,11 @@ class TokenizedDataset(Dataset):
 
 tokenized_train_dataset = TokenizedDataset(train_dataset)
 tokenized_val_dataset = TokenizedDataset(val_dataset)
+
+# 🧪 Optional: Sanity Check
+sample = tokenized_train_dataset[0]
+print("🧾 Input:", tokenizer.decode(sample["input_ids"], skip_special_tokens=True))
+print("🎯 Target:", tokenizer.decode([t for t in sample["labels"] if t != -100], skip_special_tokens=True))
 
 # === Training arguments ===
 print("⚙️ Setting training arguments...")
@@ -80,7 +96,7 @@ training_args = TrainingArguments(
 
 # === Define Trainer ===
 print("🔧 Initializing trainer...")
-data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, padding="max_length", max_length=MAX_LENGTH)
+data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, padding="max_length", max_length=MAX_LENGTH,label_pad_token_id=-100)
 
 trainer = Trainer(
     model=model,
