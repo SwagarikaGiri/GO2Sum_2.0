@@ -16,6 +16,10 @@ class GODocDataset(Dataset):
     def __getitem__(self, idx):
         row = self.data.iloc[idx]
         go_ids = row['Gene Ontology IDs'].split('; ')
-        go_doc = get_go_description(go_ids, self.go_definitions)
-        function_cc = row['Function [CC]']
+        go_doc = get_go_description(go_ids, self.go_definitions).strip()
+        function_cc = str(row['Function [CC]']).strip()
+
+        if not go_doc or not function_cc or function_cc.lower() == "nan":
+            return {'input': None, 'target': None}
+
         return {'input': go_doc, 'target': function_cc}

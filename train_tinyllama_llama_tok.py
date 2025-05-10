@@ -1,19 +1,19 @@
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments, Trainer, DataCollatorForSeq2Seq
+from transformers import LlamaTokenizer, AutoModelForCausalLM, TrainingArguments, Trainer, DataCollatorForSeq2Seq
 from dataset import GODocDataset
 from torch.utils.data import Dataset
 
 # === Configuration ===
 print("📌 Configuration setup...")
-MODEL_NAME = "TinyLlama-1.1B-Chat-v1.0"  # Local model path or HuggingFace model name
-TRAIN_TSV = "data/train_dataset.tsv"
-VAL_TSV = "data/val_dataset.tsv"
+MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"  # Correct Hugging Face model repo
+TRAIN_TSV = "data/train_dataset_cleaned.tsv"
+VAL_TSV = "data/val_dataset_cleaned.tsv"
 OBO_PATH = "data/gene_ontology.obo"
 MAX_LENGTH = 512
 
 # === Load tokenizer and model ===
-print("📥 Loading tokenizer and model from local path...")
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True, use_fast=True)
+print("📥 Loading tokenizer and model from Hugging Face...")
+tokenizer = LlamaTokenizer.from_pretrained(MODEL_NAME, use_fast=True)
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_NAME,
     device_map="auto",
@@ -30,7 +30,7 @@ print(f"✅ Loaded {len(train_dataset)} training samples and {len(val_dataset)} 
 
 def tokenize_example(example):
     input_text = "Summarize GO doc: " + example["input"]
-    target_text = example["output"]
+    target_text = example["target"]
     model_inputs = tokenizer(
         input_text,
         truncation=True,
@@ -49,7 +49,7 @@ def tokenize_example(example):
 class TokenizedDataset(Dataset):
     def __init__(self, raw_dataset):
         print("🧪 Tokenizing dataset...")
-        self.data = [tokenize_example(ex) for ex in raw_dataset]
+        self.data = [ex for ex in (tokenize_example(e) for e in raw_dataset) if ex is not None]
         print(f"✅ Tokenization complete for {len(self.data)} samples.")
     def __getitem__(self, idx):
         return self.data[idx]
@@ -66,12 +66,15 @@ training_args = TrainingArguments(
     per_device_train_batch_size=4,
     gradient_accumulation_steps=8,
     num_train_epochs=3,
+    learning_rate=2e-6,          # ✅ Explicitly set low learning rate
+    warmup_steps=100,            # ✅ Add warmup
+    max_grad_norm=1.0, 
     logging_dir="logs",
     logging_steps=10,
     save_strategy="epoch",
     evaluation_strategy="epoch",
     save_total_limit=2,
-    fp16=True,
+    fp16=False,
     report_to="none"
 )
 
