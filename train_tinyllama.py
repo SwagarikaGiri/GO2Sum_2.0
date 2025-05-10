@@ -1,17 +1,18 @@
-
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments, Trainer, DataCollatorForSeq2Seq
 from dataset import GODocDataset
 from torch.utils.data import Dataset
 
 # === Configuration ===
-MODEL_NAME = "meta-llama/Llama-2-3b-hf"
+print("📌 Configuration setup...")
+MODEL_NAME = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"  # Update for TinyLlama
 TRAIN_TSV = "data/train_dataset.tsv"
 VAL_TSV = "data/val_dataset.tsv"
 OBO_PATH = "data/gene_ontology.obo"
 MAX_LENGTH = 512
 
 # === Load tokenizer and model ===
+print("📥 Loading tokenizer and model...")
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True, use_fast=True)
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_NAME,
@@ -19,10 +20,13 @@ model = AutoModelForCausalLM.from_pretrained(
     torch_dtype=torch.float16,
     trust_remote_code=True
 )
+print("✅ Model and tokenizer loaded.")
 
 # === Prepare datasets ===
+print("📁 Loading datasets...")
 train_dataset = GODocDataset(TRAIN_TSV, OBO_PATH)
 val_dataset = GODocDataset(VAL_TSV, OBO_PATH)
+print(f"✅ Loaded {len(train_dataset)} training samples and {len(val_dataset)} validation samples.")
 
 def tokenize_example(example):
     input_text = "Summarize GO doc: " + example["input"]
@@ -44,7 +48,9 @@ def tokenize_example(example):
 
 class TokenizedDataset(Dataset):
     def __init__(self, raw_dataset):
+        print("🧪 Tokenizing dataset...")
         self.data = [tokenize_example(ex) for ex in raw_dataset]
+        print(f"✅ Tokenization complete for {len(self.data)} samples.")
     def __getitem__(self, idx):
         return self.data[idx]
     def __len__(self):
@@ -54,9 +60,10 @@ tokenized_train_dataset = TokenizedDataset(train_dataset)
 tokenized_val_dataset = TokenizedDataset(val_dataset)
 
 # === Training arguments ===
+print("⚙️ Setting training arguments...")
 training_args = TrainingArguments(
-    output_dir="outputs_llama3b_full",
-    per_device_train_batch_size=2,
+    output_dir="outputs_tinyllama",
+    per_device_train_batch_size=4,  # Can afford more due to smaller model
     gradient_accumulation_steps=8,
     num_train_epochs=3,
     logging_dir="logs",
@@ -69,6 +76,7 @@ training_args = TrainingArguments(
 )
 
 # === Define Trainer ===
+print("🔧 Initializing trainer...")
 data_collator = DataCollatorForSeq2Seq(tokenizer, model=model, padding="max_length", max_length=MAX_LENGTH)
 
 trainer = Trainer(
@@ -81,4 +89,6 @@ trainer = Trainer(
 )
 
 # === Start Training ===
+print("🚀 Starting training...")
 trainer.train()
+print("🏁 Training complete.")

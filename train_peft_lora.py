@@ -1,6 +1,7 @@
 
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments, Trainer, DataCollatorForSeq2Seq
+from peft import get_peft_model, LoraConfig, TaskType
 from dataset import GODocDataset
 from torch.utils.data import Dataset
 
@@ -15,10 +16,20 @@ MAX_LENGTH = 512
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True, use_fast=True)
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_NAME,
+    load_in_4bit=True,
     device_map="auto",
-    torch_dtype=torch.float16,
     trust_remote_code=True
 )
+
+# === Apply QLoRA ===
+peft_config = LoraConfig(
+    task_type=TaskType.CAUSAL_LM,
+    r=16,
+    lora_alpha=32,
+    lora_dropout=0.05,
+    bias="none"
+)
+model = get_peft_model(model, peft_config)
 
 # === Prepare datasets ===
 train_dataset = GODocDataset(TRAIN_TSV, OBO_PATH)
@@ -55,9 +66,9 @@ tokenized_val_dataset = TokenizedDataset(val_dataset)
 
 # === Training arguments ===
 training_args = TrainingArguments(
-    output_dir="outputs_llama3b_full",
-    per_device_train_batch_size=2,
-    gradient_accumulation_steps=8,
+    output_dir="outputs_llama3b",
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=4,
     num_train_epochs=3,
     logging_dir="logs",
     logging_steps=10,

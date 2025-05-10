@@ -7,3 +7,5 @@ torch>=2.1.0
 scipy
 scikit-learn
 tqdm
+sentencepiece         # Required for LLaMA tokenizer
+protobuf              # Avoid protobuf version mismatches (common issue)
