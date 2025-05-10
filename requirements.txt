@@ -9,3 +9,7 @@ scikit-learn
 tqdm
 sentencepiece         # Required for LLaMA tokenizer
 protobuf              # Avoid protobuf version mismatches (common issue)
+goatools
+networkx
+sentence-transformers
+scikit-learn
