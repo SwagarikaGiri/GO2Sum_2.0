@@ -32,12 +32,18 @@ class MoEFFNLayer(nn.Module):
         weights = torch.softmax(logits, dim=-1)
         topk_weights, topk_indices = torch.topk(weights, self.top_k, dim=-1)
 
-        output = 0
-        for i in range(self.top_k):
-            expert_idx = topk_indices[..., i]
-            expert_weight = topk_weights[..., i].unsqueeze(-1)
-            expert_out = torch.stack([self.experts[idx](x[b]) for b, idx in enumerate(expert_idx)], dim=0)
-            output += expert_weight * expert_out
+        batch_size, seq_len, _ = x.size()
+        output = torch.zeros_like(x)
+
+        for b in range(batch_size):
+            for s in range(seq_len):
+                token_vec = x[b, s]  # (d_model)
+                token_out = 0
+                for i in range(self.top_k):
+                    idx = topk_indices[b, s, i].item()
+                    weight = topk_weights[b, s, i].item()
+                    token_out += weight * self.experts[idx](token_vec.unsqueeze(0)).squeeze(0)
+                output[b, s] = token_out
 
         return output
 
@@ -114,7 +120,7 @@ tokenized_val_dataset = TokenizedDataset(val_dataset)
 
 # === Training setup ===
 training_args = TrainingArguments(
-    output_dir="outputs_t5_moe",
+    output_dir="outputs_t5_moe_2",
     per_device_train_batch_size=4,
     gradient_accumulation_steps=8,
     num_train_epochs=3,
